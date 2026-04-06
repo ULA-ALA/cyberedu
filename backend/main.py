@@ -4,13 +4,14 @@ import os
 
 from app.core.database import Base, engine
 from app.core.config import settings
+from app.core.ddos_detector import DDoSMiddleware, get_ddos_stats
 from app.routers import auth, users, subjects, grades, assignments, schedule, notifications, groups
 
 Base.metadata.create_all(bind=engine)
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI(
-    title="UniLMS",
+    title="CyberEdu",
     description="LMS жүйесі",
     version="1.0.0"
 )
@@ -23,6 +24,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(DDoSMiddleware)
+
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(subjects.router)
@@ -34,7 +37,19 @@ app.include_router(groups.router)
 
 @app.get("/")
 def root():
-    return {"message": "UniLMS API жумыс истеп тур", "docs": "/docs"}
+    return {"message": "CyberEdu API жумыс істеп тур", "docs": "/docs"}
+
+@app.get("/api/ddos-stats")
+def ddos_stats():
+    return get_ddos_stats()
+
+@app.delete("/api/ddos-unblock")
+def ddos_unblock():
+    from app.core.ddos_detector import stats
+    for ip_data in stats.ip_stats.values():
+        ip_data.blocked_until = 0.0
+    stats.attack_events.clear()
+    return {"message": "Барлық IP блоктары алынды"}
 
 @app.on_event("startup")
 def create_admin():
