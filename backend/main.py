@@ -13,7 +13,8 @@ os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app = FastAPI(
     title="CyberEdu",
     description="LMS жүйесі",
-    version="1.0.0"
+    version="1.0.0",
+    redirect_slashes=False
 )
 
 app.add_middleware(
