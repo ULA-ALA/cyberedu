@@ -9,11 +9,11 @@ from app.schemas.academic import SubjectCreate, SubjectOut, EnrollmentCreate
 
 router = APIRouter(prefix="/api/subjects", tags=["Subjects"])
 
-@router.get("/", response_model=List[SubjectOut])
+@router.get("", response_model=List[SubjectOut])
 def get_subjects(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(Subject).all()
 
-@router.post("/", response_model=SubjectOut)
+@router.post("", response_model=SubjectOut)
 def create_subject(data: SubjectCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
     if db.query(Subject).filter(Subject.code == data.code).first():
         raise HTTPException(status_code=400, detail="Subject code already exists")

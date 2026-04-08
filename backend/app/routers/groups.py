@@ -8,11 +8,11 @@ from app.schemas.academic import GroupCreate, GroupOut
 
 router = APIRouter(prefix="/api/groups", tags=["Groups"])
 
-@router.get("/", response_model=List[GroupOut])
+@router.get("", response_model=List[GroupOut])
 def get_groups(db: Session = Depends(get_db), _=Depends(require_admin)):
     return db.query(Group).all()
 
-@router.post("/", response_model=GroupOut)
+@router.post("", response_model=GroupOut)
 def create_group(data: GroupCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
     group = Group(**data.model_dump())
     db.add(group)

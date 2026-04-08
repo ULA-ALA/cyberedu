@@ -9,7 +9,7 @@ from app.schemas.academic import ScheduleCreate, ScheduleOut
 
 router = APIRouter(prefix="/api/schedule", tags=["Schedule"])
 
-@router.get("/", response_model=List[ScheduleOut])
+@router.get("", response_model=List[ScheduleOut])
 def get_schedule(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role == RoleEnum.STUDENT:
         student = db.query(Student).filter(Student.user_id == current_user.id).first()
@@ -23,7 +23,7 @@ def get_schedule(db: Session = Depends(get_db), current_user: User = Depends(get
         return db.query(Schedule).filter(Schedule.teacher_id == teacher.id).all()
     return db.query(Schedule).all()
 
-@router.post("/", response_model=ScheduleOut)
+@router.post("", response_model=ScheduleOut)
 def create_schedule(data: ScheduleCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
     schedule = Schedule(**data.model_dump())
     db.add(schedule)

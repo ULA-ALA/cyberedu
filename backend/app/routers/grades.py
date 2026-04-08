@@ -9,7 +9,7 @@ from app.schemas.academic import GradeCreate, GradeOut
 
 router = APIRouter(prefix="/api/grades", tags=["Grades"])
 
-@router.get("/", response_model=List[GradeOut])
+@router.get("", response_model=List[GradeOut])
 def get_grades(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role == RoleEnum.STUDENT:
         student = db.query(Student).filter(Student.user_id == current_user.id).first()
@@ -18,7 +18,7 @@ def get_grades(db: Session = Depends(get_db), current_user: User = Depends(get_c
         return db.query(Grade).filter(Grade.student_id == student.id).all()
     return db.query(Grade).all()
 
-@router.post("/", response_model=GradeOut)
+@router.post("", response_model=GradeOut)
 def create_grade(data: GradeCreate, db: Session = Depends(get_db), _=Depends(require_teacher)):
     grade = Grade(**data.model_dump())
     db.add(grade)

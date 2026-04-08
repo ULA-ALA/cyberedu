@@ -40,7 +40,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
     except WebSocketDisconnect:
         manager.disconnect(user_id)
 
-@router.get("/", response_model=List[NotificationOut])
+@router.get("", response_model=List[NotificationOut])
 def get_notifications(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(Notification).filter(
         Notification.user_id == current_user.id
