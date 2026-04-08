@@ -9,7 +9,7 @@ export default function UsersPage() {
   const [form, setForm] = useState({ email:'', full_name:'', password:'', role:'student' })
   const [loading, setLoading] = useState(false)
 
-  const fetchUsers = () => api.get('/users').then(r => setUsers(r.data))
+  const fetchUsers = () => api.get('/users/').then(r => setUsers(r.data))
   useEffect(() => { fetchUsers() }, [])
 
   const filtered = users.filter(u =>
@@ -18,13 +18,13 @@ export default function UsersPage() {
   )
 
   const roleColor = { admin:'bg-red-100 text-red-700', teacher:'bg-blue-100 text-blue-700', student:'bg-green-100 text-green-700' }
-  const roleLabel = { admin:'Админ', teacher:'Окытушы', student:'Студент' }
+  const roleLabel = { admin:'Админ', teacher:'Оқытушы', student:'Студент' }
 
   const handleCreate = async e => {
     e.preventDefault()
     setLoading(true)
     try {
-      await api.post('/users', form)
+      await api.post('/users/', form)
       setShowModal(false)
       setForm({ email:'', full_name:'', password:'', role:'student' })
       fetchUsers()
@@ -36,13 +36,13 @@ export default function UsersPage() {
   }
 
   const handleDelete = async id => {
-    if (!confirm('Жоюга сенімдісіз бе?')) return
-    await api.delete(`/users/${id}`)
+    if (!confirm('Жоюға сенімдісіз бе?')) return
+    await api.delete(`/users/${id}/`)
     fetchUsers()
   }
 
   const toggleActive = async (id, isActive) => {
-    await api.put(`/users/${id}`, { is_active: !isActive })
+    await api.put(`/users/${id}/`, { is_active: !isActive })
     fetchUsers()
   }
 
@@ -54,7 +54,7 @@ export default function UsersPage() {
           <p className="text-gray-500 text-sm mt-1">{users.length} пайдаланушы</p>
         </div>
         <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-          <Plus size={16}/> Жана пайдаланушы
+          <Plus size={16}/> Жаңа пайдаланушы
         </button>
       </div>
 
@@ -68,7 +68,7 @@ export default function UsersPage() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              {['Аты-жоні','Email','Ролі','Күйі','Арекеттер'].map(h => (
+              {['Аты-жөні','Email','Рөлі','Күйі','Әрекеттер'].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>
               ))}
             </tr>
@@ -113,7 +113,7 @@ export default function UsersPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Жана пайдаланушы</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Жаңа пайдаланушы</h2>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Аты-жөні</label>
