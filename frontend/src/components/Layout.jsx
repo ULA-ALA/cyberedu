@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { LayoutDashboard, BookOpen, GraduationCap, Calendar, Bell, Users, ClipboardList, LogOut, Shield, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, BookOpen, GraduationCap, Calendar, Bell, Users, ClipboardList, LogOut, Shield, ChevronRight, Menu, X } from 'lucide-react'
 
 const navItems = {
   admin: [
@@ -38,29 +39,39 @@ export default function Layout({ children }) {
   const location = useLocation()
   const navigate = useNavigate()
   const items = navItems[user?.role] || []
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   return (
     <div className="flex h-screen" style={{background:'#f0f4f8'}}>
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/30 z-20 lg:hidden" onClick={() => setSidebarOpen(false)}/>
+      )}
+
       {/* Sidebar */}
-      <aside className="w-72 flex flex-col" style={{background:'#0a2463', boxShadow:'4px 0 20px rgba(0,0,0,0.3)'}}>
-        
+      <aside className={`${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} fixed lg:relative lg:translate-x-0 h-full flex flex-col z-30 transition-all duration-300 overflow-hidden`}
+        style={{background:'#0a2463', boxShadow:'4px 0 20px rgba(0,0,0,0.3)'}}>
+
         {/* Logo */}
-        <div className="p-6" style={{borderBottom:'1px solid rgba(255,255,255,0.1)'}}>
+        <div className="p-5 flex items-center justify-between" style={{borderBottom:'1px solid rgba(255,255,255,0.1)'}}>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{background:'#e63946'}}>
-              <Shield size={22} className="text-white" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:'#e63946'}}>
+              <Shield size={20} className="text-white" />
             </div>
             <div>
-              <div className="font-bold text-white text-lg tracking-wide">CyberEdu</div>
-              <div className="text-xs tracking-widest uppercase" style={{color:'rgba(255,255,255,0.5)'}}>Қауіпсіз Оқу Порталы</div>
+              <div className="font-bold text-white text-base tracking-wide">CyberEdu</div>
+              <div className="text-xs tracking-widest uppercase" style={{color:'rgba(255,255,255,0.4)'}}>Қауіпсіз Оқу Порталы</div>
             </div>
           </div>
+          <button onClick={() => setSidebarOpen(false)} className="text-white/40 hover:text-white lg:hidden">
+            <X size={18}/>
+          </button>
         </div>
 
         {/* User */}
         <div className="p-4 mx-3 my-3 rounded-xl" style={{background:'rgba(255,255,255,0.07)'}}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{background:'#e63946'}}>
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{background:'#e63946'}}>
               {user?.full_name?.[0]?.toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -81,7 +92,7 @@ export default function Layout({ children }) {
           {items.map(({ to, icon: Icon, label }) => {
             const active = location.pathname === to
             return (
-              <Link key={to} to={to}
+              <Link key={to} to={to} onClick={() => window.innerWidth < 1024 && setSidebarOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 text-sm transition-all"
                 style={{
                   background: active ? 'rgba(230,57,70,0.9)' : 'transparent',
@@ -107,25 +118,32 @@ export default function Layout({ children }) {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top bar */}
-        <header className="bg-white px-8 py-4 flex items-center justify-between" style={{boxShadow:'0 1px 4px rgba(0,0,0,0.08)'}}>
-          <div>
-            <h2 className="font-bold text-gray-800 text-lg">
-              {items.find(i => i.to === location.pathname)?.label || 'UniLMS'}
-            </h2>
-            <p className="text-xs text-gray-400">АУЭС — Қауіпсіз Оқу Порталы</p>
+        <header className="bg-white px-6 py-4 flex items-center justify-between flex-shrink-0" style={{boxShadow:'0 1px 4px rgba(0,0,0,0.08)'}}>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              style={{color:'#0a2463'}}>
+              <Menu size={20}/>
+            </button>
+            <div>
+              <h2 className="font-bold text-gray-800 text-lg">
+                {items.find(i => i.to === location.pathname)?.label || 'CyberEdu'}
+              </h2>
+              <p className="text-xs text-gray-400">АУЭС — Қауіпсіз Оқу Порталы</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{background:'#0a2463'}}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0" style={{background:'#0a2463'}}>
               {user?.full_name?.[0]?.toUpperCase()}
             </div>
-            <span className="text-sm font-medium text-gray-700">{user?.full_name}</span>
+            <span className="text-sm font-medium text-gray-700 hidden sm:block">{user?.full_name}</span>
           </div>
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
       </div>
