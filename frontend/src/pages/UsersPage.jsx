@@ -9,7 +9,7 @@ export default function UsersPage() {
   const [form, setForm] = useState({ email:'', full_name:'', password:'', role:'student' })
   const [loading, setLoading] = useState(false)
 
-  const fetchUsers = () => api.get('/users/').then(r => setUsers(r.data))
+  const fetchUsers = () => api.get('/users').then(r => setUsers(r.data)).catch(()=>{})
   useEffect(() => { fetchUsers() }, [])
 
   const filtered = users.filter(u =>
@@ -24,7 +24,7 @@ export default function UsersPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      await api.post('/users/', form)
+      await api.post('/users', form)
       setShowModal(false)
       setForm({ email:'', full_name:'', password:'', role:'student' })
       fetchUsers()
@@ -37,7 +37,7 @@ export default function UsersPage() {
 
   const handleDelete = async id => {
     if (!confirm('Жоюға сенімдісіз бе?')) return
-    await api.delete(`/users/${id}/`)
+    await api.delete(`/users/${id}`)
     fetchUsers()
   }
 
