@@ -23,6 +23,10 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     is_active: Optional[bool] = None
 
+class ChangePasswordRequest(BaseModel):
+    user_id: int
+    new_password: str
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str

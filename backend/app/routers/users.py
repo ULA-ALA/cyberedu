@@ -6,7 +6,7 @@ from app.core.deps import get_current_user, require_admin
 from app.core.security import get_password_hash
 from app.models.user import User, RoleEnum
 from app.models.academic import Student, Teacher
-from app.schemas.user import UserCreate, UserOut, UserUpdate
+from app.schemas.user import UserCreate, UserOut, UserUpdate, ChangePasswordRequest
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
@@ -60,3 +60,18 @@ def delete_user(user_id: int, db: Session = Depends(get_db), _=Depends(require_a
     db.delete(user)
     db.commit()
     return {"message": "Deleted"}
+
+@router.post("/change-password")
+def change_password(
+    data: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in [RoleEnum.ADMIN, RoleEnum.DEAN]:
+        raise HTTPException(status_code=403, detail="Рұқсат жоқ")
+    user = db.query(User).filter(User.id == data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пайдаланушы табылмады")
+    user.hashed_password = get_password_hash(data.new_password)
+    db.commit()
+    return {"message": "Пароль өзгертілді"}
