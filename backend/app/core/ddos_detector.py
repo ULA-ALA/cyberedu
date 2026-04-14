@@ -5,11 +5,8 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 RATE_LIMIT_WINDOW = 10
-RATE_LIMIT_MAX_REQ = 60
-ATTACK_THRESHOLD = 40
-BLOCK_DURATION = 30
-
-EXCLUDED = ("/static", "/api/stats", "/api/logs", "/docs", "/openapi.json", "/")
+RATE_LIMIT_MAX_REQ = 20
+BLOCK_DURATION = 60
 
 class IPStats:
     def __init__(self):
@@ -26,19 +23,21 @@ class DDoSStats:
 
 stats = DDoSStats()
 
+def get_client_ip(request: Request) -> str:
+    # Барлық мүмкін header-лерді тексер
+    for header in ["X-Real-IP", "X-Forwarded-For", "CF-Connecting-IP", "True-Client-IP"]:
+        value = request.headers.get(header)
+        if value:
+            return value.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
 class DDoSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         now = time.time()
-        forwarded = request.headers.get("X-Forwarded-For")
-        ip = forwarded.split(",")[0].strip() if forwarded else (
-            request.client.host if request.client else "unknown"
-        )
-        endpoint = request.url.path
+        ip = get_client_ip(request)
+        path = request.url.path
+
         stats.total_requests += 1
-
-        if endpoint == "/" or any(endpoint.startswith(e) for e in EXCLUDED):
-            return await call_next(request)
-
         ip_data = stats.ip_stats[ip]
         ip_data.total_requests += 1
 
@@ -49,11 +48,13 @@ class DDoSMiddleware(BaseHTTPMiddleware):
             return JSONResponse(status_code=429, content={
                 "error": "Too Many Requests",
                 "message": f"IP блокталды. {remaining} секундтан кейін қайталаңыз.",
+                "ip": ip,
                 "retry_after": remaining
             })
 
         if ip_data.blocked_until and now > ip_data.blocked_until:
             ip_data.blocked_until = 0.0
+            ip_data.request_times.clear()
 
         # Sliding window
         cutoff = now - RATE_LIMIT_WINDOW
@@ -72,11 +73,14 @@ class DDoSMiddleware(BaseHTTPMiddleware):
                 "ip": ip,
                 "req_count": req_count,
                 "type": "BLOCK",
-                "message": f"IP {ip} блокталды ({req_count} сұраныс)"
+                "message": f"IP {ip} блокталды ({req_count} сұраныс/{RATE_LIMIT_WINDOW}сек)"
             })
+            if len(stats.attack_events) > 100:
+                stats.attack_events = stats.attack_events[-100:]
             return JSONResponse(status_code=429, content={
                 "error": "Too Many Requests",
-                "message": "Сіз блокталдыңыз. 30 секундтан кейін қайталаңыз."
+                "message": f"Сіз блокталдыңыз. {BLOCK_DURATION} секундтан кейін қайталаңыз.",
+                "ip": ip
             })
 
         return await call_next(request)
@@ -87,7 +91,7 @@ def get_ddos_stats():
     blocked_ips = [
         {
             "ip": ip,
-            "blocked_until": int(data.blocked_until - now),
+            "remaining_seconds": int(data.blocked_until - now),
             "total_requests": data.total_requests,
             "blocked_count": data.blocked_count
         }
@@ -100,11 +104,19 @@ def get_ddos_stats():
         "blocked_ips": blocked_ips,
         "blocked_ips_count": len(blocked_ips),
         "attack_detected": len(blocked_ips) > 0,
-        "recent_attack_events": stats.attack_events[-10:],
+        "recent_attack_events": stats.attack_events[-20:],
+        "all_ips": [
+            {
+                "ip": ip,
+                "total_requests": data.total_requests,
+                "blocked_count": data.blocked_count,
+                "is_blocked": data.blocked_until > now
+            }
+            for ip, data in stats.ip_stats.items()
+        ],
         "config": {
             "window_seconds": RATE_LIMIT_WINDOW,
             "max_requests": RATE_LIMIT_MAX_REQ,
-            "attack_threshold": ATTACK_THRESHOLD,
             "block_duration": BLOCK_DURATION
         }
     }
