@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
-import { Plus, Trash2, UserCheck, Search } from 'lucide-react'
+import { Plus, Trash2, UserCheck, Search, Key } from 'lucide-react'
 
 export default function UsersPage() {
   const [users, setUsers] = useState([])
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [showPassModal, setShowPassModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [newPassword, setNewPassword] = useState('')
   const [form, setForm] = useState({ email:'', full_name:'', password:'', role:'student' })
   const [loading, setLoading] = useState(false)
 
@@ -17,8 +20,18 @@ export default function UsersPage() {
     u.email.toLowerCase().includes(search.toLowerCase())
   )
 
-  const roleColor = { admin:'bg-red-100 text-red-700', teacher:'bg-blue-100 text-blue-700', student:'bg-green-100 text-green-700' }
-  const roleLabel = { admin:'Админ', teacher:'Оқытушы', student:'Студент' }
+  const roleColor = {
+    admin:'bg-red-100 text-red-700',
+    teacher:'bg-blue-100 text-blue-700',
+    student:'bg-green-100 text-green-700',
+    dean:'bg-purple-100 text-purple-700'
+  }
+  const roleLabel = {
+    admin:'Админ',
+    teacher:'Оқытушы',
+    student:'Студент',
+    dean:'Декан'
+  }
 
   const handleCreate = async e => {
     e.preventDefault()
@@ -42,8 +55,27 @@ export default function UsersPage() {
   }
 
   const toggleActive = async (id, isActive) => {
-    await api.put(`/users/${id}/`, { is_active: !isActive })
+    await api.put(`/users/${id}`, { is_active: !isActive })
     fetchUsers()
+  }
+
+  const handleChangePassword = async e => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      await api.post('/users/change-password', {
+        user_id: selectedUser.id,
+        new_password: newPassword
+      })
+      alert(`${selectedUser.full_name} паролі өзгертілді!`)
+      setShowPassModal(false)
+      setNewPassword('')
+      setSelectedUser(null)
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Қате')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -95,10 +127,16 @@ export default function UsersPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => toggleActive(u.id, u.is_active)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
+                    <button onClick={() => { setSelectedUser(u); setShowPassModal(true) }}
+                      className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded transition-colors" title="Пароль өзгерту">
+                      <Key size={15}/>
+                    </button>
+                    <button onClick={() => toggleActive(u.id, u.is_active)}
+                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
                       <UserCheck size={15}/>
                     </button>
-                    <button onClick={() => handleDelete(u.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                    <button onClick={() => handleDelete(u.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
                       <Trash2 size={15}/>
                     </button>
                   </div>
@@ -110,6 +148,7 @@ export default function UsersPage() {
         {filtered.length === 0 && <div className="text-center py-12 text-gray-400 text-sm">Пайдаланушылар табылмады</div>}
       </div>
 
+      {/* Жаңа пайдаланушы модалы */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
@@ -132,12 +171,41 @@ export default function UsersPage() {
                 <select value={form.role} onChange={e => setForm({...form, role:e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="student">Студент</option>
                   <option value="teacher">Оқытушы</option>
+                  <option value="dean">Декан</option>
                   <option value="admin">Администратор</option>
                 </select>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Бас тарту</button>
                 <button type="submit" disabled={loading} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">{loading ? 'Сақталуда...' : 'Сақтау'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Пароль өзгерту модалы */}
+      {showPassModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Пароль өзгерту</h2>
+            <p className="text-sm text-gray-500 mb-4">{selectedUser.full_name}</p>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Жаңа пароль</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder="Кемінде 6 символ"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => { setShowPassModal(false); setNewPassword('') }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Бас тарту</button>
+                <button type="submit" disabled={loading} className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 disabled:opacity-50">{loading ? 'Өзгертілуде...' : 'Өзгерту'}</button>
               </div>
             </form>
           </div>
